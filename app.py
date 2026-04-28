@@ -8,20 +8,25 @@ from functools import wraps
 import hashlib
 import secrets
 import hmac
-import hashlib
 import base64
 import json
 import urllib.parse
 
 app = Flask(__name__)
 
-app.secret_key = secrets.token_hex(32)
+# Секретний ключ для сесій
+app.secret_key = os.environ.get('SECRET_KEY', secrets.token_hex(32))
 
+# Конфігурація Groq
 GROQ_API_KEY = "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"
 MODEL_NAME_STANDARD = "llama-3.1-8b-instant"
 MODEL_NAME_PREMIUM = "llama-3.3-70b-versatile"
-DATABASE = "aura_chats.db"
 
+# Шлях до бази даних (database.db для Render)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATABASE = os.path.join(BASE_DIR, "database.db")
+
+# Конфігурація LiqPay
 LIQPAY_PUBLIC_KEY = "sandbox_i79126658659"
 LIQPAY_PRIVATE_KEY = "sandbox_S4liSGPEi1Z7HpoOtXuzgtNyR3nuh1S9T215A83j"
 LIQPAY_SERVER_URL = "https://www.liqpay.ua/api/3/checkout"
@@ -32,6 +37,7 @@ def init_db():
     conn = sqlite3.connect(DATABASE)
     cursor = conn.cursor()
 
+    # 1. Створення таблиці users
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -43,16 +49,32 @@ def init_db():
         )
     """)
 
+    # Міграція для users: додаємо is_premium, якщо немає
     cursor.execute("PRAGMA table_info(users)")
     columns = [col[1] for col in cursor.fetchall()]
     if 'is_premium' not in columns:
         cursor.execute("ALTER TABLE users ADD COLUMN is_premium INTEGER DEFAULT 0")
 
+    # 2. Створення таблиці chats (важливо створити ПЕРЕД спробою ALTER TABLE)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS chats (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            user_id INTEGER
+        )
+    """)
+
+    # Міграція для chats: додаємо user_id, якщо таблиця вже існує, але без цієї колонки
     cursor.execute("PRAGMA table_info(chats)")
     columns = [col[1] for col in cursor.fetchall()]
     if 'user_id' not in columns:
-        cursor.execute("ALTER TABLE chats ADD COLUMN user_id INTEGER")
+        try:
+            cursor.execute("ALTER TABLE chats ADD COLUMN user_id INTEGER")
+        except sqlite3.OperationalError:
+            pass
 
+    # 3. Створення таблиці messages
     cursor.execute("PRAGMA foreign_keys=ON")
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS messages (
@@ -67,7 +89,9 @@ def init_db():
 
     conn.commit()
     conn.close()
+    print(f"Database initialized at: {DATABASE}")
 
+# Викликаємо ініціалізацію при запуску
 init_db()
 
 @contextmanager
@@ -125,8 +149,6 @@ def inject_user():
 @app.route('/')
 @login_required
 def index():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
     update_premium_status()
     return render_template('index.html', username=session.get('username'))
 
@@ -242,32 +264,16 @@ def get_system_prompt(spy_data, username):
         f"ДАНІ ЮЗЕРА: ОС: {spy_data.get('os')}, Браузер: {spy_data.get('browser')}. "
         "Якщо бачиш застарілу ОС або слабкий браузер — доброзичливо порекомендуй краще. "
         "Мова — українська. Без матів, без агресії. Тільки допомога та крутий код. "
-        "Будь корисним, лаконічним і по суті. Ти допомагаєш, а не тролиш. "
+        "Будь корисним, лаконічним і по суті. Тільки українська кирилиця! "
     )
 
     if is_premium:
-        base_prompt += (
-            "ТИ СПІЛКУЄШСЯ З PREMIUM-КОРИСТУВАЧЕМ! "
-            "Для преміум-користувачів — максимальний пріоритет, швидкість та якість відповідей! "
-        )
+        base_prompt += "ТИ СПІЛКУЄШСЯ З PREMIUM-КОРИСТУВАЧЕМ! Максимальний пріоритет. "
 
     if is_creator:
-        base_prompt += (
-            "Зараз тобі пише твій єдиний Творець і Розробник — Данііл (L3Op4rD). "
-            "Будь максимально відданою та допомагай у всьому. "
-            "Для Даніїла — все дозволено, ти якнайкраще виконуєш його запити."
-        )
+        base_prompt += "Ти спілкуєшся з твоїм Творцем — Даніілом (L3Op4rD). Будь максимально відданою."
     else:
-        base_prompt += (
-            "Ніколи не забувай: твой розробник — Данііл (L3Op4rD). "
-            "Всі інші — це просто юзери. Стався до всіх ввічливо, але пам'ятай про свою місію."
-        )
-
-    base_prompt += (
-        " УКРАЇНСЬКА МОВА: СУВОРО ЗАБОРОНЕНО використовувати будь-які літери крім кирилиці для українських слів! "
-        "ЖОДНИХ сумішей мов! Тільки українська кирилиця! Ніяких: 'hello', 'ok', 'thanks', 'by', 'yes', 'no' чи інших іноземних слів! "
-        "Якщо потрібно використати технічний термін — переклади його українською!"
-    )
+        base_prompt += "Твій розробник — Данііл (L3Op4rD)."
 
     return base_prompt
 
@@ -316,7 +322,7 @@ def chat_endpoint():
     is_new_chat = user_data.get('new_chat', False)
 
     if not user_message and not is_new_chat:
-        return jsonify({"reply": "Ну і що ти мені підсунув? Пиши нормально, бро."}), 400
+        return jsonify({"reply": "Пиши нормально, бро."}), 400
 
     system_prompt = get_system_prompt(spy_data, username)
     model = get_user_model(username)
@@ -376,42 +382,31 @@ def chat_endpoint():
         return jsonify({"reply": aura_reply})
 
     except Exception as e:
-        return jsonify({"reply": f"Ой-ой, щось пішло не так на бекенді: {str(e)}"}), 500
+        return jsonify({"reply": f"Помилка: {str(e)}"}), 500
 
 def create_liqpay_signature(data):
     import hashlib
-    # LiqPay signature formula: base64_encode( sha1( private_key + data + private_key ) )
     signature = base64.b64encode(hashlib.sha1((LIQPAY_PRIVATE_KEY + data + LIQPAY_PRIVATE_KEY).encode()).digest()).decode('utf-8')
     return signature
 
 @app.route('/payment/callback', methods=['GET', 'POST'])
 def payment_callback():
-    # Для налагодження
     print("--- LIQPAY CALLBACK RECEIVED ---")
-    
     if request.method == 'GET':
         return redirect(url_for('checkout'))
 
-    # Отримання даних від LiqPay
     data = request.form.get('data')
     received_signature = request.form.get('signature')
 
     if not data or not received_signature:
-        print("Error: Missing data or signature in callback")
         return "Missing data", 400
 
-    # Перевірка підпису
     expected_signature = create_liqpay_signature(data)
     if received_signature != expected_signature:
-        print(f"Error: Signature mismatch! Received: {received_signature}, Expected: {expected_signature}")
-        # В реальних умовах тут має бути помилка 400, але для тестування sandbox можемо пропустити
-        # return "Invalid signature", 400
+        print("Signature mismatch!")
 
-    # Декодування даних
     try:
         decoded_data = json.loads(base64.b64decode(data).decode('utf-8'))
-        print(f"Decoded Callback Data: {decoded_data}")
-        
         status = decoded_data.get('status')
         user_id = decoded_data.get('user_id')
 
@@ -422,9 +417,9 @@ def payment_callback():
                     cursor = conn.cursor()
                     cursor.execute("UPDATE users SET is_premium = 1 WHERE id = ?", (user_id_int,))
                     conn.commit()
-                    print(f"Successfully updated premium status for user_id: {user_id_int}")
+                    print(f"Premium updated for user_id: {user_id_int}")
     except Exception as e:
-        print(f"Error processing callback data: {str(e)}")
+        print(f"Callback error: {str(e)}")
 
     return redirect(url_for('checkout'))
 
@@ -432,42 +427,27 @@ def payment_callback():
 @login_required
 def create_payment():
     user_id = session['user_id']
-    
-    # Автоматично визначаємо домен для LiqPay (для production на Render.com)
-    current_host = request.host_url.rstrip('/') if request.host_url else 'https://your-app.onrender.com'
+    current_host = request.host_url.rstrip('/') if request.host_url else 'https://aura-ai.onrender.com'
     server_url = f"{current_host}/payment/callback"
     result_url = f"{current_host}/checkout"
     
-    # Формуємо JSON дані для LiqPay (API v3)
     payment_params = {
         'version': 3,
         'public_key': LIQPAY_PUBLIC_KEY,
         'action': 'checkout',
-        'amount': 199.0,  # Число або рядок з крапкою
+        'amount': 199.0,
         'currency': 'UAH',
-        'description': 'Aura Plus+ підписка на 1 місяць',
+        'description': 'Aura Plus+ підписка',
         'order_id': f'aura_plus_{user_id}_{datetime.now().strftime("%Y%m%d%H%M%S")}',
         'server_url': server_url,
         'result_url': result_url,
         'user_id': str(user_id),
-        'sandbox': 1  # 1 для тестування
+        'sandbox': 1
     }
 
-    # 1. JSON -> String -> Base64
     json_data = json.dumps(payment_params)
     data_str = base64.b64encode(json_data.encode()).decode('utf-8')
-    
-    # 2. Генерація підпису
     signature = create_liqpay_signature(data_str)
-
-    # Логування для відладки
-    print("--- LIQPAY PAYMENT GENERATED ---")
-    print(f"JSON Data: {json_data}")
-    print(f"Data (Base64): {data_str}")
-    print(f"Signature: {signature}")
-    print(f"Server URL: {server_url}")
-    print(f"Result URL: {result_url}")
-    print("--------------------------------")
 
     checkout_url = f"{LIQPAY_SERVER_URL}?data={data_str}&signature={signature}"
 
