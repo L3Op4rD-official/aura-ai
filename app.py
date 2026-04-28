@@ -12,10 +12,18 @@ import base64
 import json
 import urllib.parse
 
-app = Flask(__name__)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+app = Flask(__name__, 
+            template_folder=os.path.join(BASE_DIR, 'templates'),
+            static_folder=os.path.join(BASE_DIR, 'static'))
 
 # Секретний ключ для сесій
-app.secret_key = os.environ.get('SECRET_KEY', secrets.token_hex(32))
+app.secret_key = 'super-secret-key-for-aura'
+
+# Додаємо обробник помилок 500 для відладки
+@app.errorhandler(500)
+def internal_error(error):
+    return str(error), 500
 
 # Конфігурація Groq
 GROQ_API_KEY = "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"
@@ -23,7 +31,6 @@ MODEL_NAME_STANDARD = "llama-3.1-8b-instant"
 MODEL_NAME_PREMIUM = "llama-3.3-70b-versatile"
 
 # Шлях до бази даних (database.db для Render)
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATABASE = os.path.join(BASE_DIR, "database.db")
 
 # Конфігурація LiqPay
@@ -43,15 +50,21 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL,
             email TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL,
+            password TEXT NOT NULL,
             created_at TEXT NOT NULL,
             is_premium INTEGER DEFAULT 0
         )
     """)
 
-    # Міграція для users: додаємо is_premium, якщо немає
+    # Міграція для users: додаємо password та is_premium, якщо немає
     cursor.execute("PRAGMA table_info(users)")
     columns = [col[1] for col in cursor.fetchall()]
+    
+    if 'password' not in columns and 'password_hash' in columns:
+        cursor.execute("ALTER TABLE users RENAME COLUMN password_hash TO password")
+    elif 'password' not in columns:
+        cursor.execute("ALTER TABLE users ADD COLUMN password TEXT")
+        
     if 'is_premium' not in columns:
         cursor.execute("ALTER TABLE users ADD COLUMN is_premium INTEGER DEFAULT 0")
 
@@ -187,15 +200,15 @@ def register():
     if len(password) < 6:
         return jsonify({"error": "Пароль має бути мінімум 6 символів"}), 400
 
-    password_hash = hash_password(password)
+    password_val = hash_password(password)
     created_at = datetime.now().isoformat()
 
     try:
         with get_db_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "INSERT INTO users (username, email, password_hash, created_at) VALUES (?, ?, ?, ?)",
-                (username, email, password_hash, created_at)
+                "INSERT INTO users (username, email, password, created_at) VALUES (?, ?, ?, ?)",
+                (username, email, password_val, created_at)
             )
             conn.commit()
 
@@ -220,13 +233,13 @@ def login():
     if not username or not password:
         return jsonify({"error": "Введіть ім'я та пароль"}), 400
 
-    password_hash = hash_password(password)
+    password_val = hash_password(password)
 
     with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT id, username, is_premium FROM users WHERE username = ? AND password_hash = ?",
-            (username, password_hash)
+            "SELECT id, username, is_premium FROM users WHERE username = ? AND password = ?",
+            (username, password_val)
         )
         user = cursor.fetchone()
 
