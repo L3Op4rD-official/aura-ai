@@ -11,11 +11,14 @@ import hmac
 import base64
 import json
 import urllib.parse
+import traceback
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+basedir = os.path.abspath(os.path.dirname(__file__))
+DB_PATH = os.path.join(basedir, 'database.db')
+
 app = Flask(__name__, 
-            template_folder=os.path.join(BASE_DIR, 'templates'),
-            static_folder=os.path.join(BASE_DIR, 'static'))
+            template_folder=os.path.join(basedir, 'templates'),
+            static_folder=os.path.join(basedir, 'static'))
 
 # Секретний ключ для сесій
 app.secret_key = 'super-secret-key-for-aura'
@@ -23,7 +26,7 @@ app.secret_key = 'super-secret-key-for-aura'
 # Додаємо обробник помилок 500 для відладки
 @app.errorhandler(500)
 def internal_error(error):
-    return str(error), 500
+    return f"<pre>{traceback.format_exc()}</pre>", 500
 
 # Конфігурація Groq
 GROQ_API_KEY = "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"
@@ -31,7 +34,7 @@ MODEL_NAME_STANDARD = "llama-3.1-8b-instant"
 MODEL_NAME_PREMIUM = "llama-3.3-70b-versatile"
 
 # Шлях до бази даних (database.db для Render)
-DATABASE = os.path.join(BASE_DIR, "database.db")
+# DB_PATH вже визначено вище
 
 # Конфігурація LiqPay
 LIQPAY_PUBLIC_KEY = "sandbox_i79126658659"
@@ -41,7 +44,7 @@ LIQPAY_SERVER_URL = "https://www.liqpay.ua/api/3/checkout"
 client = Groq(api_key=GROQ_API_KEY)
 
 def init_db():
-    conn = sqlite3.connect(DATABASE)
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
     # 1. Створення таблиці users
@@ -102,14 +105,14 @@ def init_db():
 
     conn.commit()
     conn.close()
-    print(f"Database initialized at: {DATABASE}")
+    print(f"Database initialized at: {DB_PATH}")
 
 # Викликаємо ініціалізацію при запуску
 init_db()
 
 @contextmanager
 def get_db_connection():
-    conn = sqlite3.connect(DATABASE)
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     try:
         yield conn
