@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aura AI - Plus+ Підписка</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #0a0a0a;
+            color: #00ff41;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .terminal {
+            background: #0d1117;
+            border: 2px solid #00ff41;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 0 30px rgba(0, 255, 65, 0.3);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #00ff4133;
+        }
+
+        .logo-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .logo-img {
+            width: 60px;
+            height: 60px;
+            filter: drop-shadow(0 0 15px #00ff41);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { filter: drop-shadow(0 0 15px #00ff41); }
+            50% { filter: drop-shadow(0 0 25px #00ff41); }
+        }
+
+        .header h1 {
+            font-size: 32px;
+            color: #00ff41;
+            text-shadow: 0 0 20px rgba(0, 255, 65, 0.7);
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            color: #00cc33;
+            font-size: 14px;
+        }
+
+        .plan-container {
+            background: #151515;
+            border: 2px solid #00ff41;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        .plan-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .plan-name {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00ff41;
+        }
+
+        .plan-badge {
+            background: linear-gradient(135deg, #ffd700, #ffaa00);
+            color: #000;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .plan-price {
+            text-align: center;
+            margin: 25px 0;
+        }
+
+        .price-amount {
+            font-size: 48px;
+            font-weight: bold;
+            color: #00ff41;
+            text-shadow: 0 0 20px rgba(0, 255, 65, 0.5);
+        }
+
+        .price-currency {
+            font-size: 24px;
+            color: #00cc33;
+            margin-left: 5px;
+        }
+
+        .price-period {
+            color: #00aa33;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .features-list {
+            list-style: none;
+            margin: 20px 0;
+        }
+
+        .features-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid #222;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .features-list li:last-child {
+            border-bottom: none;
+        }
+
+        .feature-icon {
+            color: #00ff41;
+            font-size: 16px;
+        }
+
+        .btn-pay {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #00ff41, #00cc33);
+            border: none;
+            color: #000;
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+
+        .btn-pay:hover {
+            background: linear-gradient(135deg, #00ff88, #00ff41);
+            box-shadow: 0 0 30px rgba(0, 255, 65, 0.6);
+            transform: translateY(-2px);
+        }
+
+        .btn-pay:disabled {
+            background: #333;
+            color: #666;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .premium-active {
+            text-align: center;
+            padding: 30px;
+        }
+
+        .premium-active h2 {
+            color: #ffd700;
+            font-size: 28px;
+            margin-bottom: 15px;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+
+        .premium-active p {
+            color: #00ff41;
+            margin-bottom: 20px;
+        }
+
+        .btn-back {
+            display: inline-block;
+            padding: 12px 30px;
+            background: transparent;
+            border: 2px solid #00ff41;
+            color: #00ff41;
+            text-decoration: none;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-back:hover {
+            background: #00ff41;
+            color: #000;
+        }
+
+        .security-note {
+            text-align: center;
+            margin-top: 20px;
+            color: #00661a;
+            font-size: 12px;
+        }
+
+        .processing-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 1000;
+        }
+
+        .processing-overlay.active {
+            display: flex;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid #00ff4133;
+            border-top-color: #00ff41;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .processing-text {
+            color: #00ff41;
+            font-size: 18px;
+            text-align: center;
+        }
+
+        .success-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 1000;
+        }
+
+        .success-overlay.active {
+            display: flex;
+        }
+
+        .success-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: bounce 0.5s ease;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #00ff4133;
+        }
+
+        .footer a {
+            color: #00cc33;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .footer a:hover {
+            color: #00ff41;
+            text-decoration: underline;
+        }
+
+        .csrf-token {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="terminal">
+            <div class="header">
+                <div class="logo-container">
+                    <img class="logo-img" src="/static/aura_logo.svg" alt="Aura Logo">
+                </div>
+                <h1>AURA PLUS+</h1>
+                <p>Розблокуй максимальну силу ШІ</p>
+            </div>
+
+            {% if is_premium %}
+            <div class="premium-active">
+                <h2>★ ВИ ПРЕМІУМ ★</h2>
+                <p>Дякуємо за підтримку! Ви маєте доступ до всіх преміум функцій.</p>
+                <a href="/" class="btn-back">← ПОВЕРНУТИСЯ ДО ЧАТУ</a>
+            </div>
+            {% else %}
+            <div class="plan-container">
+                <div class="plan-header">
+                    <span class="plan-name">PLUS+</span>
+                    <span class="plan-badge">RECOMMENDED</span>
+                </div>
+
+                <div class="plan-price">
+                    <span class="price-amount">199</span>
+                    <span class="price-currency">грн</span>
+                    <div class="price-period">на місяць</div>
+                </div>
+
+                <ul class="features-list">
+                    <li><span class="feature-icon">⚡</span> Модель <strong>Llama 3.3 70B</strong> — найпотужніша</li>
+                    <li><span class="feature-icon">🚀</span> Пріоритетна обробка запитів</li>
+                    <li><span class="feature-icon">💬</span> Безлімітні повідомлення</li>
+                    <li><span class="feature-icon">⭐</span> Преміум статус у чаті</li>
+                    <li><span class="feature-icon">🎯</span> Максимальна точність відповідей</li>
+                </ul>
+
+                <button id="pay-btn" class="btn-pay">⚡ АКТИВУВАТИ PLUS+</button>
+
+                <p class="security-note">
+                    🔒 Платіж через LiqPay — безпека гарантована
+                </p>
+            </div>
+            {% endif %}
+
+            <div class="footer">
+                <a href="/">← Повернутися до чату</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="processing-overlay" id="processing">
+        <div class="spinner"></div>
+        <div class="processing-text">
+            Перенаправляю на оплату...<br>
+            <small style="color: #00aa33;">Не закривайте сторінку</small>
+        </div>
+    </div>
+
+    <div class="success-overlay" id="success">
+        <div class="success-icon">✅</div>
+        <div class="processing-text">
+            Платіж успішний!<br>
+            <small style="color: #00aa33;">Активуємо ваш PLUS+...</small>
+        </div>
+    </div>
+
+    <form id="csrf-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    </form>
+
+    <script>
+        const payBtn = document.getElementById('pay-btn');
+        const processing = document.getElementById('processing');
+        const success = document.getElementById('success');
+
+        if (payBtn) {
+            payBtn.addEventListener('click', async () => {
+                payBtn.disabled = true;
+                payBtn.textContent = 'ЗАВАНТАЖЕННЯ...';
+                processing.classList.add('active');
+
+                try {
+                    const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+
+                    const response = await fetch('/api/create-payment', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': csrfToken
+                        }
+                    });
+
+                    const data = await response.json();
+
+                    if (data.checkout_url || data.sandbox_url) {
+                        const redirectUrl = data.sandbox_url || data.checkout_url;
+                        processing.classList.remove('active');
+                        window.location.href = redirectUrl;
+                    } else {
+                        throw new Error('No checkout URL received');
+                    }
+                } catch (error) {
+                    processing.classList.remove('active');
+                    payBtn.disabled = false;
+                    payBtn.textContent = 'ПОМИЛКА — СПРОБУЙТЕ ЗНОВУ';
+                    console.error('Payment error:', error);
+                }
+            });
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const status = urlParams.get('status');
+        const sandbox = urlParams.get('sandbox');
+
+        if (status === 'success' || sandbox === '1') {
+            success.classList.add('active');
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

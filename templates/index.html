@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aura AI - Web Terminal v6.0</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <style>
+        :root {
+            --bg-color: #0a0a0a;
+            --container-bg: #111;
+            --text-color: #00ff41;
+            --accent-color: #008f11;
+            --boss-msg: #1a1a1a;
+            --aura-msg: #051a05;
+            --border: #00ff41;
+            --sidebar-bg: #0d0d0d;
+            --sidebar-width: 280px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #sidebar {
+            width: var(--sidebar-width);
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        #sidebar-header {
+            padding: 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        #logo-link {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px;
+            text-decoration: none;
+            color: var(--text-color);
+            border-bottom: 1px solid #222;
+        }
+
+        #logo-link:hover {
+            background: #1a1a1a;
+        }
+
+        #logo-img {
+            width: 40px;
+            height: 40px;
+            filter: drop-shadow(0 0 8px #00ff41);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { filter: drop-shadow(0 0 8px #00ff41); }
+            50% { filter: drop-shadow(0 0 15px #00ff41); }
+        }
+
+        #logo-text {
+            font-size: 18px;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+        }
+
+        #new-chat-btn {
+            width: 100%;
+            background: var(--accent-color);
+            color: #000;
+            border: none;
+            padding: 12px 15px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+            font-size: 13px;
+            transition: 0.3s;
+            text-align: left;
+        }
+
+        #new-chat-btn:hover {
+            background: var(--text-color);
+        }
+
+        #sidebar-top-area {
+            padding: 10px 15px;
+            border-bottom: 1px solid #222;
+            display: flex;
+            gap: 10px;
+        }
+
+        #logout-btn {
+            flex: 1;
+            background: transparent;
+            color: #ff4444;
+            border: 1px solid #ff4444;
+            padding: 8px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+            font-size: 11px;
+            transition: 0.3s;
+        }
+
+        #logout-btn:hover {
+            background: #ff4444;
+            color: #000;
+        }
+
+        #chat-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .chat-item {
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            background: #151515;
+            border: 1px solid #333;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 13px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .chat-item:hover {
+            background: #1a1a1a;
+            border-color: var(--accent-color);
+        }
+
+        .chat-item.active {
+            background: #0a1a0a;
+            border-color: var(--text-color);
+        }
+
+        #sidebar-footer {
+            padding: 15px;
+            border-top: 1px solid #222;
+            background: #0a0a0a;
+        }
+
+        #upgrade-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #00ff41, #00cc33);
+            color: #000;
+            border: none;
+            padding: 12px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+            font-size: 13px;
+            border-radius: 5px;
+            transition: 0.3s;
+            text-shadow: none;
+        }
+
+        #upgrade-btn:hover {
+            background: linear-gradient(135deg, #00ff88, #00ff41);
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.5);
+        }
+
+        #upgrade-btn.premium {
+            background: linear-gradient(135deg, #ffd700, #ffaa00);
+            color: #000;
+        }
+
+        #upgrade-btn.premium:hover {
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+
+        .premium-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            background: linear-gradient(135deg, #ffd700, #ffaa00);
+            color: #000;
+            font-size: 9px;
+            border-radius: 3px;
+            margin-left: 8px;
+            font-weight: bold;
+        }
+
+        #main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        #spy-box {
+            position: fixed;
+            top: 60px;
+            right: 10px;
+            background: rgba(0, 255, 65, 0.1);
+            border: 1px solid var(--border);
+            padding: 10px;
+            font-size: 12px;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        #chat-window {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 12px 18px;
+            border-radius: 5px;
+            line-height: 1.4;
+            position: relative;
+        }
+
+        .boss-message {
+            align-self: flex-end;
+            background-color: var(--boss-msg);
+            border: 1px solid #444;
+            color: #eee;
+        }
+
+        .aura-message {
+            align-self: flex-start;
+            background-color: var(--aura-msg);
+            border: 1px solid var(--border);
+        }
+
+        .message-label {
+            font-size: 10px;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            opacity: 0.7;
+        }
+
+        #input-area {
+            padding: 20px;
+            background: var(--container-bg);
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 10px;
+        }
+
+        input {
+            flex: 1;
+            background: #000;
+            border: 1px solid var(--border);
+            color: var(--text-color);
+            padding: 12px;
+            font-family: inherit;
+            outline: none;
+        }
+
+        button {
+            background: var(--accent-color);
+            color: #000;
+            border: none;
+            padding: 0 25px;
+            cursor: pointer;
+            font-weight: bold;
+            font-family: inherit;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background: var(--text-color);
+        }
+
+        button:disabled {
+            background: #333;
+            color: #666;
+            cursor: not-allowed;
+        }
+
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: #000; }
+        ::-webkit-scrollbar-thumb { background: var(--accent-color); }
+    </style>
+</head>
+<body>
+
+    <div id="sidebar">
+        <div id="sidebar-header">
+            <a id="logo-link" href="/">
+                <img id="logo-img" src="/static/aura_logo.svg" alt="Aura Logo">
+                <span id="logo-text">AURA AI</span>
+                {% if is_premium %}<span class="premium-badge">PLUS+</span>{% endif %}
+            </a>
+            <button id="new-chat-btn">+ НОВИЙ ЧАТ</button>
+        </div>
+        <div id="sidebar-top-area">
+            <button id="logout-btn">ВИХІД</button>
+        </div>
+        <div id="chat-list"></div>
+        <div id="sidebar-footer">
+            {% if is_premium %}
+            <button id="upgrade-btn" class="premium" onclick="window.location.href='/checkout'">★ PLUS+ АКТИВНО ★</button>
+            {% else %}
+            <button id="upgrade-btn" onclick="window.location.href='/checkout'">↑ ПІДПИСКА НА PLUS+</button>
+            {% endif %}
+        </div>
+    </div>
+
+    <div id="main-content">
+        <div id="spy-box">
+            [СКРИПТ ШПІГУНА]<br>
+            Система: <span id="user-os">Detecting...</span><br>
+            Браузер: <span id="user-browser">Detecting...</span>
+        </div>
+
+        <div id="chat-window"></div>
+
+        <div id="input-area">
+            <input type="text" id="user-input" placeholder="Введи своє повідомлення..." autocomplete="off">
+            <button id="send-btn">ВІДПРАВИТИ</button>
+        </div>
+    </div>
+
+    <script>
+        const chatWindow = document.getElementById('chat-window');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const osSpan = document.getElementById('user-os');
+        const browserSpan = document.getElementById('user-browser');
+        const chatList = document.getElementById('chat-list');
+        const newChatBtn = document.getElementById('new-chat-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+
+        let currentChatId = null;
+        let spyData = {};
+
+        function getSpyData() {
+            const ua = navigator.userAgent;
+            let os = "Невідома ОС";
+            if (ua.indexOf("Win") != -1) os = "Windows";
+            if (ua.indexOf("Mac") != -1) os = "MacOS";
+            if (ua.indexOf("Linux") != -1) os = "Linux";
+            if (ua.indexOf("Android") != -1) os = "Android";
+            if (ua.indexOf("like Mac") != -1) os = "iOS";
+
+            let browser = "Невідомий";
+            if (ua.indexOf("Chrome") != -1) browser = "Chrome";
+            if (ua.indexOf("Firefox") != -1) browser = "Firefox";
+            if (ua.indexOf("Safari") != -1 && ua.indexOf("Chrome") == -1) browser = "Safari";
+            if (ua.indexOf("Edge") != -1) browser = "Edge";
+
+            osSpan.innerText = os;
+            browserSpan.innerText = browser;
+            return { os, browser };
+        }
+
+        function addMessage(text, isAura = false) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${isAura ? 'aura-message' : 'boss-message'}`;
+
+            const label = document.createElement('div');
+            label.className = 'message-label';
+            label.innerText = isAura ? 'Aura' : 'Ти';
+
+            const content = document.createElement('div');
+            content.innerText = text;
+
+            msgDiv.appendChild(label);
+            msgDiv.appendChild(content);
+            chatWindow.appendChild(msgDiv);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        async function loadChats() {
+            try {
+                const response = await fetch('/chats');
+                const data = await response.json();
+                chatList.innerHTML = '';
+                data.chats.forEach(chat => {
+                    const chatDiv = document.createElement('div');
+                    chatDiv.className = 'chat-item' + (chat.id === currentChatId ? ' active' : '');
+                    chatDiv.innerText = chat.title;
+                    chatDiv.dataset.chatId = chat.id;
+                    chatDiv.addEventListener('click', () => selectChat(chat.id));
+                    chatList.appendChild(chatDiv);
+                });
+            } catch (err) {
+                console.error('Error loading chats:', err);
+            }
+        }
+
+        async function selectChat(chatId) {
+            currentChatId = chatId;
+            chatWindow.innerHTML = '';
+
+            try {
+                const response = await fetch(`/chat/${chatId}/messages`);
+                const data = await response.json();
+                data.messages.forEach(msg => {
+                    addMessage(msg.content, msg.role === 'assistant');
+                });
+            } catch (err) {
+                console.error('Error loading messages:', err);
+            }
+
+            loadChats();
+        }
+
+        async function startNewChat() {
+            currentChatId = null;
+            chatWindow.innerHTML = '';
+            addMessage('Вітаю в Aura Terminal v6.0! Я — твій інтелектуальний асистент. Чим можу допомогти сьогодні, бро?', true);
+            userInput.focus();
+        }
+
+        async function sendMessage() {
+            const text = userInput.value.trim();
+            if (!text) return;
+
+            if (!currentChatId) {
+                try {
+                    const response = await fetch('/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            message: text,
+                            spy_data: spyData,
+                            new_chat: true
+                        })
+                    });
+                    const data = await response.json();
+                    currentChatId = data.chat_id;
+                    addMessage(text, false);
+
+                    userInput.value = '';
+                    userInput.disabled = true;
+                    sendBtn.disabled = true;
+
+                    const auraResponse = await fetch('/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            message: text,
+                            spy_data: spyData,
+                            chat_id: currentChatId
+                        })
+                    });
+                    const auraData = await auraResponse.json();
+                    addMessage(auraData.reply || "Щось пішло не так, спробуй ще раз.", true);
+
+                    loadChats();
+                } catch (err) {
+                    addMessage("Помилка з'єднання. Перевір інтернет.", true);
+                } finally {
+                    userInput.disabled = false;
+                    sendBtn.disabled = false;
+                    userInput.focus();
+                }
+                return;
+            }
+
+            addMessage(text, false);
+            userInput.value = '';
+            userInput.disabled = true;
+            sendBtn.disabled = true;
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: text,
+                        spy_data: spyData,
+                        chat_id: currentChatId
+                    })
+                });
+
+                const data = await response.json();
+                addMessage(data.reply || "Щось пішло не так, спробуй ще раз.", true);
+            } catch (err) {
+                addMessage("Помилка з'єднання. Перевір інтернет.", true);
+            } finally {
+                userInput.disabled = false;
+                sendBtn.disabled = false;
+                userInput.focus();
+            }
+        }
+
+        spyData = getSpyData();
+        loadChats();
+        startNewChat();
+
+        newChatBtn.addEventListener('click', startNewChat);
+
+        logoutBtn.addEventListener('click', async () => {
+            try {
+                await fetch('/logout', { method: 'POST' });
+                window.location.href = '/login';
+            } catch (err) {
+                console.error('Logout error:', err);
+            }
+        });
+
+        sendBtn.addEventListener('click', sendMessage);
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+    </script>
+</body>
+</html>

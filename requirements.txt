@@ -1,5 +1,5 @@
-httpx==0.27.2
-groq==0.4.0
 flask==3.0.0
+groq==0.4.0
 liqpay-python==1.0
+Werkzeug==3.0.1
 gunicorn==21.2.0

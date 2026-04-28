@@ -17,7 +17,11 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 DB_PATH = os.path.join(basedir, 'database.db')
 
 app = Flask(__name__, 
+<<<<<<< Updated upstream
             template_folder=os.path.join(basedir, 'templates'),
+=======
+            template_folder=os.path.join(basedir, 'templates'), 
+>>>>>>> Stashed changes
             static_folder=os.path.join(basedir, 'static'))
 
 # Секретний ключ для сесій
